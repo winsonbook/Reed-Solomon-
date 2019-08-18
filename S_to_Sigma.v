@@ -57,31 +57,30 @@ always@(state,signal,OS_T0,OS_T1,OS_T2,OS_T3)
 				begin 
 					load = 1; 
 					if(signal) 
-						next_state = S_T0;
+						next_state = S_T3;
 				end
 			S_T0: 
 				begin  
 					T0 = 1;
-					if(OS_T0 == 2'b01) next_state = S_T1;
-					if(OS_T0 == 2'b10) next_state = S_idle;
+					if((OS_T0 == 2'b10)||(OS_T0 == 2'b01)) next_state = S_idle;
 				end	
 			S_T1:	   
 				begin 
 					T1 = 1;
-					if(OS_T1 == 2'b01) next_state = S_T2;
+					if(OS_T1 == 2'b01) next_state = S_T0;
 					if(OS_T1 == 2'b10) next_state = S_idle;
 				end
 			S_T2:	   
 				begin 
 					T2 = 1;
-					if(OS_T2 == 2'b01) next_state = S_T3;
+					if(OS_T2 == 2'b01) next_state = S_T1;
 					if(OS_T2 == 2'b10) next_state = S_idle;					
 				end	
 			S_T3:
 				begin
 					T3 = 1;
-					if((OS_T3 == 2'b01)||(OS_T3 == 2'b10))
-							next_state = S_idle;
+					if(OS_T3 == 2'b01) next_state = S_T2;
+					if(OS_T3 == 2'b10) next_state = S_idle;
 				end
 			default: next_state = S_idle;
 		endcase
@@ -138,48 +137,6 @@ always@(posedge clk)
 				ready = 0;
 			end
 			
-		else if(T0)
-			begin
-				if((S1 == 8'b00000000)&(S2 == 8'b00000000)&(S3 == 8'b00000000)&(S4 == 8'b00000000)&(S5 == 8'b00000000)&(S6 == 8'b00000000))
-					begin
-						s1 = 8'b00000000;
-						s2 = 8'b00000000;
-						s3 = 8'b00000000;
-						ready = 1;
-						OS_T0 = 2'b10;
-					end
-				else
-					OS_T0 = 2'b01;
-			end
-			
-		else if(T1)
-			begin
-				if((S2S1 == S3S2)&(S3S2 == S4S3)&(S4S3 == S5S4)&(S5S4 == S6S5))
-					begin
-						s1 = S2S1;
-						s2 = 8'b00000000;
-						s3 = 8'b00000000;
-						ready = 1;
-						OS_T1 = 2'b10;
-					end
-				else
-					OS_T1 = 2'b01;
-			end
-			
-		else if(T2)
-			begin
-				if(delta == 8'b00000000)
-					OS_T2 = 2'b01;
-				else
-					begin
-						s1 = out1;
-						s2 = out2;
-						s3 = 8'b00000000;
-						ready = 1;
-						OS_T2 = 2'b10;
-					end
-			end
-		
 		else if(T3)
 			begin
 				if(dlt == 8'b00000000)
@@ -195,6 +152,48 @@ always@(posedge clk)
 					s3 = out5;
 					OS_T3 = 2'b10;
 			end		
+		
+		else if(T2)
+			begin
+				if(delta == 8'b00000000)
+					OS_T2 = 2'b01;
+				else
+					begin
+						s1 = out1;
+						s2 = out2;
+						s3 = 8'b00000000;
+						ready = 1;
+						OS_T2 = 2'b10;
+					end
+			end
+		
+		else if(T1)
+			begin
+				if((S2S1 == S3S2)&(S3S2 == S4S3)&(S4S3 == S5S4)&(S5S4 == S6S5))
+					begin
+						s1 = S2S1;
+						s2 = 8'b00000000;
+						s3 = 8'b00000000;
+						ready = 1;
+						OS_T1 = 2'b10;
+					end
+				else
+					OS_T1 = 2'b01;
+			end
+			
+		else if(T0)
+			begin
+				if((S1 == 8'b00000000)&(S2 == 8'b00000000)&(S3 == 8'b00000000)&(S4 == 8'b00000000)&(S5 == 8'b00000000)&(S6 == 8'b00000000))
+					begin
+						s1 = 8'b00000000;
+						s2 = 8'b00000000;
+						s3 = 8'b00000000;
+						ready = 1;
+						OS_T0 = 2'b10;
+					end
+				else
+					OS_T0 = 2'b01;
+			end
 	end
 	
 endmodule
