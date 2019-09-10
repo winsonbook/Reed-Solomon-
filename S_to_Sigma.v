@@ -1,4 +1,24 @@
 `timescale 1ns / 1ps
+module main(
+input clk
+    );
+    wire [7:0] w1,w2,w3,w4,w5,w6;
+    assign w1 = 8'd215;
+    assign w2 = 8'd2;
+    assign w3 = 8'd148;
+    assign w4 = 8'd39;
+    assign w5 = 8'd1;
+    assign w6 = 8'd54;
+
+    reg [2:0] sig = 3'b100;
+    
+    always@(posedge clk)
+        sig <= {1'b0,sig[2:1]};
+    
+    wire [7:0] s0,s1,s2,s3;
+    S_to_Sigma sigma1 (.w1(w1),.w2(w2),.w3(w3),.w4(w4),.w5(w5),.w6(w6),.clk(clk),.signal(sig[0]),.s0(s0),.s1(s1),.s2(s2),.s3(s3));    
+
+endmodule
 
 module S_to_Sigma(
     input clk,
