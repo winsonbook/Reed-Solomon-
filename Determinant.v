@@ -1,5 +1,3 @@
-
-
 module Determinant(
     input [7:0] d1,
     input [7:0] d2,
