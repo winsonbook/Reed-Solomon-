@@ -1,8 +1,8 @@
 
-module Test_S_to_Sigma;
+module t_S_to_Sigma;
     reg clk;
     
-    main m1 (.clk(clk));
+    interface_S_to_Sigma m1 (.clk(clk));
     
     initial
     begin
