@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-module main(
+module interface_S_to_Sigma(
 input clk
     );
     wire [7:0] w1,w2,w3,w4,w5,w6;
