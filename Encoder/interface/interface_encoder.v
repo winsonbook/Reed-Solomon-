@@ -254,6 +254,7 @@ reg [7:0] MX248	= 8'd251;
 
 reg [7:0] data = 8'b0000_0000;
 reg [7:0] data_buff = 8'b0000_0000;
+reg [7:0] data_buff_1 = 8'b0000_0000;
 reg [2:0] start = 3'b100;
 
 wire [7:0] CX;
@@ -263,11 +264,12 @@ wire stop = 1'b0;
 always@(negedge clock)
     start <= {1'b0,start[2:1]};
 
-always@(posedge clock)
+always@(negedge clock)
 begin
-    data <= data_buff;
-    data_buff <= MX0;
-    MX0	<= MX1;
+    data <= data_buff_1;
+    data_buff_1 <= data_buff;       //Since after giving signal to encoder block it starts taking input after 1 clock pulse
+    data_buff <= MX0;               //In that clock pulse encoder only changes it's state and prepares itself to take input
+    MX0	<= MX1;                     
 	MX1	<= MX2;
 	MX2	<= MX3;
 	MX3	<= MX4;
