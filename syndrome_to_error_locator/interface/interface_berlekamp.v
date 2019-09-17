@@ -14,7 +14,7 @@ output [7:0] s3
 
     reg [2:0] sig = 3'b100;
     
-    always@(posedge clock)
+	always@(negedge clock)
         sig <= {1'b0,sig[2:1]};
     
     wire [7:0] s0,s1,s2;
