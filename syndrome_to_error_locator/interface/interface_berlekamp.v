@@ -18,7 +18,7 @@ output [7:0] s3
         sig <= {1'b0,sig[2:1]};
     
     wire [7:0] s0,s1,s2;
-    berlekamp_messey b1 (.S1(w1),.S2(w2),.S3(w3),.S4(w4),.S5(w5),.S6(w6),.clock(clock),.signal(sig[0]),.s0(s0),.s1(s1),.s2(s2),.s3(s3));    
+    berlekamp_messey b1 (.S1(w1),.S2(w2),.S3(w3),.S4(w4),.S5(w5),.S6(w6),.clock(clock),.signal(sig[0]),.w0(s0),.w1(s1),.w2(s2),.w3(s3));    
 
 endmodule
 
@@ -31,10 +31,10 @@ module berlekamp_messey(
     input [7:0] S4,
     input [7:0] S5,
     input [7:0] S6,
-    output reg [7:0] s1,
-    output reg [7:0] s2,
-    output reg [7:0] s3,
-    output reg [7:0] s0,
+    output reg [7:0] w1,
+    output reg [7:0] w2,
+    output reg [7:0] w3,
+    output reg [7:0] w0,
     output reg ready
     );
   parameter [2:0] S_idle = 3'b000,
@@ -620,10 +620,10 @@ module berlekamp_messey(
     else if(T_6)
      begin
         ready = 1'b1;
-        s0 = sigma[6][7:0];
-        s1 = sigma[6][15:8];
-        s2 = sigma[6][23:16];
-        s3 = sigma[6][31:24];
+        w0 = sigma[6][7:0];
+        w1 = sigma[6][15:8];
+        w2 = sigma[6][23:16];
+        w3 = sigma[6][31:24];
      end
   end
 endmodule
