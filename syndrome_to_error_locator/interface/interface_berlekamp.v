@@ -1,9 +1,23 @@
 `timescale 1ns / 1ps
 
 module interface_berlekamp(
-input clock,
-output [7:0] s3
+	output [3:0] SF_D,
+	output LCD_E,
+	output LCD_RS,
+	output LCD_RW,
+	output [7:0] s0,
+	output [7:0] s1,
+	output [7:0] s2,
+	output [7:0] s3,
+	input clock
+//output [7:0] s3
     );
+//	 reg [24:0] counter = 25'b0;
+//	 always@(posedge clock_in)
+//		counter <= counter + 1;
+//	 wire clock;
+//	 assign clock = counter[25];
+		
     wire [7:0] w1,w2,w3,w4,w5,w6;
     assign w1 = 8'd215;
     assign w2 = 8'd2;
@@ -17,9 +31,9 @@ output [7:0] s3
 	always@(negedge clock)
         sig <= {1'b0,sig[2:1]};
     
-    wire [7:0] s0,s1,s2;
+    //wire [7:0] s0,s1,s2,s3;
     berlekamp_messey b1 (.S1(w1),.S2(w2),.S3(w3),.S4(w4),.S5(w5),.S6(w6),.clock(clock),.signal(sig[0]),.w0(s0),.w1(s1),.w2(s2),.w3(s3));    
-
+	 LCD_hexadecimal #(.no_of_hex_char(8), .delay_rate(100)) LCD1 (.SF_D(SF_D), .LCD_E(LCD_E), .LCD_RS(LCD_RS), .LCD_RW(LCD_RW), .data({s0,s1,s2,s3}), .clock(clock));
 endmodule
 
 module berlekamp_messey(
@@ -61,58 +75,58 @@ module berlekamp_messey(
 
   always@(state,signal)
   begin 
-  load = 1'b0;
-  T_0 = 1'b0;
-  T_1 = 1'b0;
-  T_2 = 1'b0;
-  T_3 = 1'b0;
-  T_4 = 1'b0;
-  T_5 = 1'b0;
-  T_6 = 1'b0;
+  load <= 1'b0;
+  T_0 <= 1'b0;
+  T_1 <= 1'b0;
+  T_2 <= 1'b0;
+  T_3 <= 1'b0;
+  T_4 <= 1'b0;
+  T_5 <= 1'b0;
+  T_6 <= 1'b0;
   
     case(state)
     S_idle:
         begin
-            load = 1'b1;
+            load <= 1'b1;
             if(signal)
-               next_state = S_0; 
+               next_state <= S_0; 
         end
     S_0:
         begin 
-            T_0 = 1'b1;
-            next_state = S_1;
+            T_0 <= 1'b1;
+            next_state <= S_1;
         end
     S_1:
         begin 
-            T_1 = 1'b1;
-            next_state = S_2;
+            T_1 <= 1'b1;
+            next_state <= S_2;
         end
      S_2:
         begin 
-            T_2 = 1'b1;
-            next_state = S_3;
+            T_2 <= 1'b1;
+            next_state <= S_3;
         end   
      S_3:
         begin 
-            T_3 = 1'b1;
-            next_state = S_4;
+            T_3 <= 1'b1;
+            next_state <= S_4;
         end
      S_4:
         begin 
-            T_4 = 1'b1;
-            next_state = S_5;
+            T_4 <= 1'b1;
+            next_state <= S_5;
         end
      S_5:
         begin 
-            T_5 = 1'b1;
-            next_state = S_6;
+            T_5 <= 1'b1;
+            next_state <= S_6;
         end
      S_6:
         begin 
-            T_6 = 1'b1;
-            next_state = S_idle;
+            T_6 <= 1'b1;
+            next_state <= S_idle;
         end
-     default: next_state = S_idle;
+     default: next_state <= S_idle;
     endcase
   end 
   
@@ -243,45 +257,45 @@ module berlekamp_messey(
   
   reg [2:0] row;
 //  always@(load,T_0,T_1,T_2,T_3,T_4,T_5,T_6)
-    always@(posedge(clock))
+always@(posedge(clock))
   begin
     if(load)
      begin
-       ready = 1'b0;
-       sigma[1] = 0;
-       sigma[2] = 0;
-       sigma[3] = 0;
-       sigma[4] = 0;
-       sigma[5] = 0;
-       sigma[6] = 0;       
-       d[0] = S1;
-       h[1] = 0;
-       h[2] = 0;
-       h[3] = 0;
-       h[4] = 0;
-       h[5] = 0;
-       h[6] = 0;
+       ready <= 1'b0;
+       sigma[1] <= 0;
+       sigma[2] <= 0;
+       sigma[3] <= 0;
+       sigma[4] <= 0;
+       sigma[5] <= 0;
+       sigma[6] <= 0;       
+       d[0] <= S1;
+       h[1] <= 0;
+       h[2] <= 0;
+       h[3] <= 0;
+       h[4] <= 0;
+       h[5] <= 0;
+       h[6] <= 0;
      end
      
     else if(T_0)
      begin
         if(d0_zero)
         begin
-            sigma[1] = 1;
-            h[1] = 0;
+            sigma[1] <= 1;
+            h[1] <= 0;
         end
         
         else
         begin
-            sigma[1][8*1-1:0] = 1;
-            sigma[1][8*2-1:8*1] = d[0];
-            h[1] = 1;
+            sigma[1][8*1-1:0] <= 1;
+            sigma[1][8*2-1:8*1] <= d[0];
+            h[1] <= 1;
         end
         
         if((~h[1][0])&&(~h[1][1])&&(~h[1][2]))        //here h[1] is only 0 or 1
-            d[1] = S2;
+            d[1] <= S2;
         else
-            d[1] = S2^sigma_11_S1;
+            d[1] <= S2^sigma_11_S1;
                       
      end
      
@@ -289,38 +303,38 @@ module berlekamp_messey(
      begin
         if(d1_zero)
         begin
-            sigma[2] = sigma[1];
-            h[2] = h[1];
+            sigma[2] <= sigma[1];
+            h[2] <= h[1];
         end
 
         else
         begin         
             if(d0_zero)     //Ro = -1th row
             begin
-                sigma[2] = {sigma[1][31:24],d[1]^sigma[1][23:16],sigma[1][15:0]};
-                h[2] = 3'd2;
+                sigma[2] <= {sigma[1][31:24],d[1]^sigma[1][23:16],sigma[1][15:0]};
+                h[2] <= 3'd2;
             end
             
             else
             begin
-                sigma[2] = (sigma[1]^T1_temp);
-                h[2] = 3'd1;
+                sigma[2] <= (sigma[1]^T1_temp);
+                h[2] <= 3'd1;
             end
         end  
         
         case(h[2])
         3'd0:
             begin
-                d[2] = S3;
+                d[2] <= S3;
             end
             
         3'd1:
             begin
-                d[2] = T1_h1;
+                d[2] <= T1_h1;
             end
         3'd2:
             begin
-                d[2] = ((S3^T1_s21S2)^T1_s22S1);
+                d[2] <= ((S3^T1_s21S2)^T1_s22S1);
             end    
         endcase  
         
@@ -330,220 +344,220 @@ module berlekamp_messey(
      begin
         if(d2_zero)
         begin
-            sigma[3] = sigma[2];
-            h[3] = h[2];
+            sigma[3] <= sigma[2];
+            h[3] <= h[2];
         end
         
         else if((d1_zero)&&(d0_zero))     //Ro = -1th row
         begin
-            sigma[3] = {(d[2]^(sigma[2][31:24])),sigma[2][23:0]};
-            h[3] = 3'd3;
+            sigma[3] <= {(d[2]^(sigma[2][31:24])),sigma[2][23:0]};
+            h[3] <= 3'd3;
         end
         
         else if(Muh1_zero)          //This block is to account for the fact that, I am assigning Muh == 0 if it's d is zero
         begin                       //So that it will no lenger be largest number
             if(~d0_zero)            //But a case can arise if all Muh be zero.This block is for this case
             begin
-                sigma[3] = {sigma[2][31:24],(sigma[2][23:16])^(d2i_d0),sigma[2][15:0]};
-                h[3] = 3'd2;
+                sigma[3] <= {sigma[2][31:24],(sigma[2][23:16])^(d2i_d0),sigma[2][15:0]};
+                h[3] <= 3'd2;
             end
             
             else
             begin
-                sigma[3] = {(T_2sigma3),(T_2sigma2),(T_2sigma1),sigma[2][7:0]};
-                h[3] = (h[2]>(h[1]+1))?h[2]:(h[1]+1);
+                sigma[3] <= {(T_2sigma3),(T_2sigma2),(T_2sigma1),sigma[2][7:0]};
+                h[3] <= (h[2]>(h[1]+1))?h[2]:(h[1]+1);
             end
         end
         
         else
         begin
-            sigma[3] = {((sigma[2][31:24])^(d2i_d1sigma12)),((sigma[2][23:16])^(d2i_d1sigma11)),((sigma[2][15:8])^(d2i_d1sigma10)),sigma[2][7:0]};
-            h[3] = (h[2]>(h[1]+1))?h[2]:(h[1]+1);
+            sigma[3] <= {((sigma[2][31:24])^(d2i_d1sigma12)),((sigma[2][23:16])^(d2i_d1sigma11)),((sigma[2][15:8])^(d2i_d1sigma10)),sigma[2][7:0]};
+            h[3] <= (h[2]>(h[1]+1))?h[2]:(h[1]+1);
         end                       
         
         case(h[3])
         3'd0:
             begin
-                d[3] = S4;
+                d[3] <= S4;
             end
         3'd1:
             begin
-                d[3] = T2_h1;
+                d[3] <= T2_h1;
             end
         3'd2:
             begin
-                d[3] = ((S4^sigma31S3)^sigma32S2);
+                d[3] <= ((S4^sigma31S3)^sigma32S2);
             end
         3'd3:
             begin
-                d[3] = (((S4^sigma31S3)^sigma32S2)^sigma33S1);
+                d[3] <= (((S4^sigma31S3)^sigma32S2)^sigma33S1);
             end
         endcase                    
      end
      
     else if(T_3)
      begin   
-        row = 3'd6;          
+        row <= 3'd6;          
         if(d3_zero)
         begin
-            sigma[4] = sigma[3];
-            h[4] = h[3];
+            sigma[4] <= sigma[3];
+            h[4] <= h[3];
         end
         
         else if((d2_zero)&&(d1_zero)&&(d0_zero))     //Ro = -1th row
         begin
-            row = 3'd7;
+            row <= 3'd7;
         end
         
         else if(Muh1_zero&&Muh2_zero)
         begin
             if(~d0_zero)
-                row = 3'd0;
+                row <= 3'd0;
             else if(~d1_zero)
-                row = 3'd1;
+                row <= 3'd1;
             else if(~d2_zero)
-                row = 3'd2;
+                row <= 3'd2;
         end
                 
         else
             begin
                 if(M1l3)
-                    row = 1;
+                    row <= 1;
                 else if(M2l3)
-                    row = 2;
+                    row <= 2;
             end
                
         case(row)
         3'd7:
             begin
-                sigma[4] = sigma[3];
-                h[4] = 3'd4;
+                sigma[4] <= sigma[3];
+                h[4] <= 3'd4;
             end
         3'd0:
             begin
-                sigma[4] = {((sigma[3][31:24])^d3i_d0),sigma[3][23:0]};
-                h[4] = 3'd3;
+                sigma[4] <= {((sigma[3][31:24])^d3i_d0),sigma[3][23:0]};
+                h[4] <= 3'd3;
             end
         3'd1:
             begin
-                sigma[4] = {((sigma[3][31:24])^(d3i_d1sigma11)),((sigma[3][23:16])^(d3i_d1sigma10)),sigma[3][15:0]};
-                h[4] = (h[3]>(h[1]+2))?h[3]:(h[1]+2);
+                sigma[4] <= {((sigma[3][31:24])^(d3i_d1sigma11)),((sigma[3][23:16])^(d3i_d1sigma10)),sigma[3][15:0]};
+                h[4] <= (h[3]>(h[1]+2))?h[3]:(h[1]+2);
             end
         3'd2:
             begin
-                sigma[4] = {((sigma[3][31:24])^(d3i_d2sigma22)),((sigma[3][23:16])^(d3i_d2sigma21)),((sigma[3][15:8])^(d3i_d2sigma20)),sigma[3][7:0]};
-                h[4] = (h[3]>(h[2]+1))?h[3]:(h[2]+1);
+                sigma[4] <= {((sigma[3][31:24])^(d3i_d2sigma22)),((sigma[3][23:16])^(d3i_d2sigma21)),((sigma[3][15:8])^(d3i_d2sigma20)),sigma[3][7:0]};
+                h[4] <= (h[3]>(h[2]+1))?h[3]:(h[2]+1);
             end
         endcase
         
         case(h[4])
         3'd0:
             begin
-                d[4] = S5;
+                d[4] <= S5;
             end
         3'd1:
             begin
-                d[4] = (S5^sigma41S4);
+                d[4] <= (S5^sigma41S4);
             end
         3'd2:
             begin
-                d[4] = ((S5^sigma41S4)^sigma42S3);
+                d[4] <= ((S5^sigma41S4)^sigma42S3);
             end
         3'd3:
             begin
-                d[4] = (((S5^sigma41S4)^sigma42S3)^sigma43S2);
+                d[4] <= (((S5^sigma41S4)^sigma42S3)^sigma43S2);
             end
         3'd4:
             begin
-                d[4] = (((S5^sigma41S4)^sigma42S3)^sigma43S2);
+                d[4] <= (((S5^sigma41S4)^sigma42S3)^sigma43S2);
             end
         endcase 
      end
      
     else if(T_4)
      begin
-        row = 3'd6;
+        row <= 3'd6;
         if(d4_zero)
         begin
-            sigma[5] = sigma[4];
-            h[5] = h[4];
+            sigma[5] <= sigma[4];
+            h[5] <= h[4];
         end
          
         else if((d3_zero)&&(d2_zero)&&(d1_zero)&&(d0_zero))     //Ro = -1th row
         begin
-            row = 3'd7;
+            row <= 3'd7;
         end
        
         else if(Muh1_zero&&Muh2_zero&&Muh3_zero)
         begin
             if(~d0_zero)
-                row = 3'd0;
+                row <= 3'd0;
             else if(~d1_zero)
-                row = 3'd1;
+                row <= 3'd1;
             else if(~d2_zero)
-                row = 3'd2;
+                row <= 3'd2;
             else if(~d3_zero)
-                row = 3'd3;
+                row <= 3'd3;
         end
         
         else
         begin
             if(M1l2)
-                row = 3'd1;
+                row <= 3'd1;
             else if(M2l2)
-                row = 3'd2;
+                row <= 3'd2;
             else if(M3l2)
-                row = 3'd3;
+                row <= 3'd3;
         end
         
         case(row)
         3'd7:
             begin
-                sigma[5] = sigma[4];
-                h[5] = 3'd5;
+                sigma[5] <= sigma[4];
+                h[5] <= 3'd5;
             end
         3'd0:
             begin
-                sigma[5] = sigma[4];
-                h[4] = 3'd4;
+                sigma[5] <= sigma[4];
+                h[4] <= 3'd4;
             end
         3'd1:
             begin
-                sigma[5] = {((sigma[4][31:24])^(d4i_d1sigma10)),sigma[4][23:0]};
-                h[5] = (h[4]>(h[1]+3))?h[4]:(h[1]+3);
+                sigma[5] <= {((sigma[4][31:24])^(d4i_d1sigma10)),sigma[4][23:0]};
+                h[5] <= (h[4]>(h[1]+3))?h[4]:(h[1]+3);
             end
         3'd2:
             begin
-                sigma[5] = {((sigma[4][31:24])^(d4i_d2sigma21)),((sigma[4][23:16])^(d4i_d2sigma20)),sigma[4][15:0]};
-                h[5] = (h[4]>(h[2]+2))?h[4]:(h[2]+2);
+                sigma[5] <= {((sigma[4][31:24])^(d4i_d2sigma21)),((sigma[4][23:16])^(d4i_d2sigma20)),sigma[4][15:0]};
+                h[5] <= (h[4]>(h[2]+2))?h[4]:(h[2]+2);
             end
         3'd3:
             begin
-                sigma[5] = {((sigma[4][31:24])^(d4i_d3sigma32)),((sigma[4][23:16])^(d4i_d3sigma31)),((sigma[4][15:8])^(d4i_d3sigma30)),sigma[4][7:0]};
-                h[5] = (h[4]>(h[3]+1))?h[4]:(h[3]+1);
+                sigma[5] <= {((sigma[4][31:24])^(d4i_d3sigma32)),((sigma[4][23:16])^(d4i_d3sigma31)),((sigma[4][15:8])^(d4i_d3sigma30)),sigma[4][7:0]};
+                h[5] <= (h[4]>(h[3]+1))?h[4]:(h[3]+1);
             end
         endcase
         
         case(h[5])
         3'd0:
             begin
-                d[5] = S6;
+                d[5] <= S6;
             end
         3'd1:
             begin
-                d[5] = (S6^sigma51S5);
+                d[5] <= (S6^sigma51S5);
             end
         3'd2:
             begin
-                d[5] = ((S6^sigma51S5)^sigma52S4);
+                d[5] <= ((S6^sigma51S5)^sigma52S4);
             end
         3'd3:
             begin
-                d[5] = (((S6^sigma51S5)^sigma52S4)^sigma53S3);
+                d[5] <= (((S6^sigma51S5)^sigma52S4)^sigma53S3);
             end
         3'd4:
             begin
-                d[5] = (((S6^sigma51S5)^sigma52S4)^sigma53S3);
+                d[5] <= (((S6^sigma51S5)^sigma52S4)^sigma53S3);
             end
         endcase 
        
@@ -551,79 +565,79 @@ module berlekamp_messey(
      
     else if(T_5)
      begin
-        row = 3'd6;
+        row <= 3'd6;
         if(d5_zero)
         begin
-            sigma[6] = sigma[5];
-            h[6] = h[5];
+            sigma[6] <= sigma[5];
+            h[6] <= h[5];
         end
         
         else if((d4_zero)&&(d3_zero)&&(d2_zero)&&(d1_zero)&&(d0_zero))     //Ro = -1th row
         begin
-            row = 3'd7;    
+            row <= 3'd7;    
         end
         
         else if(Muh1_zero&&Muh2_zero&&Muh3_zero&&Muh4_zero)
         begin
             if(~d0_zero)
-                row = 3'd0;
+                row <= 3'd0;
             else if(~d1_zero)
-                row = 3'd1;
+                row <= 3'd1;
             else if(~d2_zero)
-                row = 3'd2;
+                row <= 3'd2;
             else if(~d3_zero)
-                row = 3'd3;
+                row <= 3'd3;
             else if(~d4_zero)
-                row = 3'd4;
+                row <= 3'd4;
         end
         
         else
         begin
             if(M1l)
-                row = 3'd1;
+                row <= 3'd1;
             else if(M2l)
-                row = 3'd2;
+                row <= 3'd2;
             else if(M3l)
-                row = 3'd3;
+                row <= 3'd3;
             else if(M4l)
-                row = 3'd4;
+                row <= 3'd4;
         end
      
      case(row)
         3'd7:
             begin
-                sigma[6] = sigma[5];
+                sigma[6] <= sigma[5];
             end
         3'd0:
             begin
-                sigma[6] = sigma[5];
+                sigma[6] <= sigma[5];
             end
         3'd1:
             begin
-                sigma[6] = sigma[5];
+                sigma[6] <= sigma[5];
             end
         3'd2:
             begin
-                sigma[6] = {((sigma[5][31:24])^(d5i_d2sigma20)),sigma[5][23:0]};
+                sigma[6] <= {((sigma[5][31:24])^(d5i_d2sigma20)),sigma[5][23:0]};
             end
         3'd3:
             begin
-                sigma[6] = {((sigma[5][31:24])^(d5i_d3sigma31)),((sigma[5][23:16])^(d5i_d3sigma30)),sigma[5][15:0]};
+                sigma[6] <= {((sigma[5][31:24])^(d5i_d3sigma31)),((sigma[5][23:16])^(d5i_d3sigma30)),sigma[5][15:0]};
             end
         3'd4:
             begin
-                sigma[6] = {((sigma[5][31:24])^(d5i_d4sigma42)),((sigma[5][23:16])^(d5i_d4sigma41)),((sigma[5][15:8])^(d5i_d4sigma40)),sigma[5][7:0]};
+                sigma[6] <= {((sigma[5][31:24])^(d5i_d4sigma42)),((sigma[5][23:16])^(d5i_d4sigma41)),((sigma[5][15:8])^(d5i_d4sigma40)),sigma[5][7:0]};
             end
         endcase
     end
      
     else if(T_6)
      begin
-        ready = 1'b1;
-        w0 = sigma[6][7:0];
-        w1 = sigma[6][15:8];
-        w2 = sigma[6][23:16];
-        w3 = sigma[6][31:24];
+        ready <= 1'b1;
+        w0 <= sigma[6][7:0];
+        w1 <= sigma[6][15:8];
+        w2 <= sigma[6][23:16];
+        w3 <= sigma[6][31:24];
      end
   end
 endmodule
@@ -703,4 +717,193 @@ multiply MM11(.A(x127),.B(x127),.X(x254));
 
 
 assign y = x254;
+endmodule
+
+module LCD_hexadecimal #(parameter no_of_hex_char = 1, parameter delay_rate = 0)	//max delay rate = 255, min refresh rate = 0
+(	output reg [3:0] SF_D,
+	output LCD_E,
+	output reg LCD_RS,
+	output reg LCD_RW,
+	input [63:0] data,
+	input clock
+);		
+reg [3:0] data_count = no_of_hex_char;
+
+parameter [4:0] 	P_ON_1  = 5'b00000,		//Defining states
+						P_ON_2  = 5'b00001,
+						P_ON_3  = 5'b00010,
+						P_ON_4  = 5'b0011,
+						D_CON_1 = 5'b00100,
+						D_CON_2 = 5'b00101,
+						D_CON_3 = 5'b00110,
+						D_CON_4 = 5'b00111,
+						D_CON_5 = 5'b01000,
+						D_CON_6 = 5'b01001,
+						D_CON_7 = 5'b01010,
+						D_CON_8 = 5'b01011,
+						ADD_1   = 5'b01100,
+						ADD_2   = 5'b01101,
+						S_DATA_1= 5'b01110,
+						S_DATA_2= 5'b01111,
+						S_WAIT  = 5'b10000;
+						
+reg [4:0] state = 5'b00000;	//P_ON_1
+
+reg [19:0] counter = 20'b0;	
+always@(posedge clock)
+	counter <= counter+1;
+	
+assign LCD_E = ~counter[19];	//setting enable pin such that it's 1 only once for a command or data
+
+reg [7:0] wait_count = 8'b0;
+always@(posedge counter[19])	//using counter[19] as this will cover all the minimum time required for setup and hold
+begin
+	case(state)
+//----------------------------------------------------------------------------
+// Power-On Initialization
+		P_ON_1 : state<=P_ON_2;
+		P_ON_2 : state<=P_ON_3;
+		P_ON_3 : state<=P_ON_4;
+		P_ON_4 : state<=D_CON_1;
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+// Display Configuration		
+		D_CON_1: state<=D_CON_2;//Function Set command, 0x28, to configure the display for operation on the Spartan-3E Starter Kit board 
+		D_CON_2: state<=D_CON_3;
+		
+		D_CON_3: state<=D_CON_4;// Entry Mode Set  command, 0x06, to set the display to automatically increment the address pointer
+		D_CON_4: state<=D_CON_5;
+		
+		D_CON_5: state<=D_CON_6;// Display On/Off command, 0x0C, to turn the display on and disables the cursor and blinking
+		D_CON_6: state<=D_CON_7;
+		
+		D_CON_7: state <= D_CON_8;// Clear Display command
+		D_CON_8: state<=ADD_1;
+//-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+// Setting DDRAM Address			
+		ADD_1  : state<=ADD_2; 
+		ADD_2  : state<=S_DATA_1;
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Writing Data to the Display
+		S_DATA_1: state <= S_DATA_2;	//4 MSB of character						
+		S_DATA_2 : begin					//4 LSB of character	
+						if(data_count == 4'b1)
+						begin
+							state <= S_WAIT;
+							data_count <= no_of_hex_char;							
+						end
+						
+						else
+						begin
+							data_count <= data_count-1;
+							state <= S_DATA_1;					
+						end
+					  end
+//----------------------------------------------------------------------
+		 S_WAIT	: begin				//Waiting state to incorporate refresh rate
+							if(wait_count >= delay_rate)
+								begin
+									wait_count <= 8'b0;
+									state <= D_CON_7;
+								end
+							else
+								begin
+									wait_count <= wait_count + 1;
+									state <= S_WAIT;
+								end
+					  end
+//-----------------------------------------------------------------------
+		default : state <= P_ON_1;
+	endcase
+end
+
+reg [3:0] char;
+
+always@(data_count)
+begin								//Current data priting on LCD
+	case(data_count-1)
+	4'hF : char <=	data[63:60];
+	4'hE : char <= data[59:56];
+	4'hD : char <=	data[55:52];
+	4'hC : char <= data[51:48];
+	4'hB : char <=	data[47:44];
+	4'hA : char <= data[43:40];
+	4'h9 : char <=	data[39:36];
+	4'h8 : char <= data[35:32];
+	4'h7 : char <=	data[31:28];
+	4'h6 : char <= data[27:24];
+	4'h5 : char <=	data[23:20];
+	4'h4 : char <= data[19:16];
+	4'h3 : char <=	data[15:12];
+	4'h2 : char <= data[11:8];
+	4'h1 : char <=	data[7:4];
+	4'h0 : char <= data[3:0];
+	
+	default char <= 4'h1;
+	endcase
+end
+
+reg [7:0] LCD_data = 8'h24;
+always@(char)			
+begin
+	case(char)	//Mapping of hexadecimal numbers to ASCII value
+	4'h0: LCD_data <= {4'h3,4'h0};
+	4'h1: LCD_data <= {4'h3,4'h1};
+	4'h2: LCD_data <= {4'h3,4'h2};
+	4'h3: LCD_data <= {4'h3,4'h3};
+	4'h4: LCD_data <= {4'h3,4'h4};
+	4'h5: LCD_data <= {4'h3,4'h5};
+	4'h6: LCD_data <= {4'h3,4'h6};
+	4'h7: LCD_data <= {4'h3,4'h7};
+	4'h8: LCD_data <= {4'h3,4'h8};
+	4'h9: LCD_data <= {4'h3,4'h9};
+	
+	4'hA: LCD_data <= {4'h4,4'h1};
+	4'hB: LCD_data <= {4'h4,4'h2};
+	4'hC: LCD_data <= {4'h4,4'h3};
+	4'hD: LCD_data <= {4'h4,4'h4};
+	4'hE: LCD_data <= {4'h4,4'h5};
+	4'hF: LCD_data <= {4'h4,4'h6};
+	
+	default : LCD_data <= 8'h24;	//LCD will show ' $ '
+	endcase
+end
+
+always@(posedge clock)
+begin
+	case(state)
+		P_ON_1 : {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h3};
+		P_ON_2 : {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h3};
+		P_ON_3 : {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h3};	
+		P_ON_4 : {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h2};
+		
+		D_CON_1: {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h2};		
+		D_CON_2: {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h8};
+		
+		D_CON_3: {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h0};		
+		D_CON_4: {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h6};
+		
+		D_CON_5: {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h0};		
+		D_CON_6: {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'hC};
+		
+		D_CON_7: {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h0};		
+		D_CON_8: {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'h1};
+						
+		ADD_1  : {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'b1000};
+		ADD_2  : {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b00,4'b0000};
+
+		S_DATA_1 : {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b10,LCD_data[7:4]};
+		S_DATA_2 : {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b10,LCD_data[3:0]};
+		
+		S_WAIT : {LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b01,4'h0};
+		
+		default :{LCD_RS,LCD_RW,SF_D[3:0]} <= {2'b01,4'h0};
+	endcase
+end
+
 endmodule
