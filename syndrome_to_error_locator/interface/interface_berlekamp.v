@@ -5,14 +5,12 @@ module interface_berlekamp(
 	output LCD_E,
 	output LCD_RS,
 	output LCD_RW,
-	output [7:0] s0,
-	output [7:0] s1,
-	output [7:0] s2,
-	output [7:0] s3,
-	input clock_in
+	input clock_in,
+	input sw1,
+	input sw0
 //output [7:0] s3
     );
-	 parameter clock_mode = 12;
+	 parameter clock_mode = 20;
 	 
 	 reg [24:0] counter = 25'b0;
 	 always@(posedge clock_in)
@@ -28,14 +26,65 @@ module interface_berlekamp(
     assign w5 = 8'd1;
     assign w6 = 8'd54;
 
-    reg [2:0] sig = 3'b100;
+    reg [2:0] signal = {3'b100};
     
 	always@(negedge clock)
-        sig <= {1'b0,sig[2:1]};
+        signal <= {1'b0,signal[2:1]};
     
-    //wire [7:0] s0,s1,s2,s3;
-    berlekamp_messey b1 (.S1(w1),.S2(w2),.S3(w3),.S4(w4),.S5(w5),.S6(w6),.clock(clock),.signal(sig[0]),.w0(s0),.w1(s1),.w2(s2),.w3(s3));    
-	 LCD_hexadecimal #(.no_of_hex_char(8), .delay_rate(100)) LCD1 (.SF_D(SF_D), .LCD_E(LCD_E), .LCD_RS(LCD_RS), .LCD_RW(LCD_RW), .data({s0,s1,s2,s3}), .clock(clock));
+    wire [7:0] s0,s1,s2,s3;
+    
+	 //////////////////////////////////////////////////////
+	 wire [31:0] sig1,sig2,sig3,sig4,sig5,sig6;
+	 reg [31:0] tsig1,tsig2,tsig3,tsig4,tsig5,tsig6;
+	 always@(posedge sig6[31])
+	 begin
+	 tsig1 = sig1;
+	 tsig2 = sig2;
+	 tsig3 = sig3;
+	 tsig4 = sig4;
+	 tsig5 = sig5;
+	 tsig6 = sig6;
+	 end
+	 
+	 //////////////////////////////////////////////////////
+	 
+	 berlekamp_messey b1 (.S1(w1),.S2(w2),.S3(w3),.S4(w4),.S5(w5),.S6(w6),.clock(clock),.signal(signal[0]),.w0(s0),.w1(s1),.w2(s2),.w3(s3),
+	 .sig1(sig1),
+	 .sig2(sig2),
+	 .sig3(sig3),
+	 .sig4(sig4),
+	 .sig5(sig5),
+	 .sig6(sig6)
+	 );    
+	 //////////////////////////////////////////////////////////////
+	 reg [31:0] data1,data2;
+	 always@(*)
+	 begin
+	 case({sw1,sw0})
+		2'd0:
+		begin
+			data1 = tsig1;
+			data2 = tsig2;
+		end
+		2'd1:
+		begin
+			data1 = tsig3;
+			data2 = tsig4;
+		end
+		2'd2:
+		begin
+			data1 = tsig5;
+			data2 = tsig6;		
+		end
+		default:
+		begin
+			data1 = 32'b1;
+			data2 = {s3,s2,s1,s0};		
+		end
+	 endcase
+	 end
+	 
+	 LCD_hexadecimal #(.no_of_hex_char(16), .delay_rate(10)) LCD1 (.SF_D(SF_D), .LCD_E(LCD_E), .LCD_RS(LCD_RS), .LCD_RW(LCD_RW), .data({data1,data2}), .clock(clock_in));
 endmodule
 
 module berlekamp_messey(
@@ -51,7 +100,13 @@ module berlekamp_messey(
     output reg [7:0] w2,
     output reg [7:0] w3,
     output reg [7:0] w0,
-    output reg ready
+    output reg ready,
+	 output[31:0] sig1,
+	 output[31:0] sig2,
+	 output[31:0] sig3,
+	 output[31:0] sig4,
+	 output[31:0] sig5,
+	 output[31:0] sig6
     );
   parameter [2:0] S_idle = 3'b000,
                   S_0    = 3'b001,
@@ -62,31 +117,31 @@ module berlekamp_messey(
                   S_5    = 3'b110,
                   S_6    = 3'b111;
   reg [2:0] state = 3'b000;
-  reg [2:0] buffer_state_1 = 3'b000;//For debugging
-  reg [2:0] buffer_state_2 = 3'b000;
+//  reg [2:0] buffer_state_1 = 3'b000;//For debugging
+//  reg [2:0] buffer_state_2 = 3'b000;
   reg [2:0] next_state = 3'b000;
   
   
   always@(posedge(clock))
   begin 
-      buffer_state_1 <= next_state;
-		buffer_state_2 <= buffer_state_1;
-      state <= buffer_state_2;    
-//        state = next_state;
+//      buffer_state_1 <= next_state;
+//		buffer_state_2 <= buffer_state_1;
+//      state <= buffer_state_2;    
+        state = next_state;
   end 
   
   reg load,T_0,T_1,T_2,T_3,T_4,T_5,T_6;
 
   always@(state,signal)
   begin 
-  load = 1'b0;
-  T_0 = 1'b0;
-  T_1 = 1'b0;
-  T_2 = 1'b0;
-  T_3 = 1'b0;
-  T_4 = 1'b0;
-  T_5 = 1'b0;
-  T_6 = 1'b0;
+	  load = 1'b0;
+	  T_0 = 1'b0;
+	  T_1 = 1'b0;
+	  T_2 = 1'b0;
+	  T_3 = 1'b0;
+	  T_4 = 1'b0;
+	  T_5 = 1'b0;
+	  T_6 = 1'b0;
   
     case(state)
     S_idle:
@@ -138,7 +193,16 @@ module berlekamp_messey(
     reg [8*4-1:0] sigma[1:6];
     reg [2:0] h[1:6];
     wire [7:0] i_d[0:4];
-    
+	 
+    //////////////////////////////////////////////////////////////////
+	 assign sig1 = sigma[1];			//
+	 assign sig2 = sigma[2];			//
+	 assign sig3 = sigma[3];			//For Debugging
+	 assign sig4 = sigma[4];			//
+	 assign sig5 = sigma[5];			//
+	 assign sig6 = sigma[6];			//
+	 //////////////////////////////////////////////////////////////////
+	 
     Inverse_8_bit I1 (.y(i_d[0]),.x(d[0]));
     Inverse_8_bit I2 (.y(i_d[1]),.x(d[1]));
     Inverse_8_bit I3 (.y(i_d[2]),.x(d[2]));
@@ -259,47 +323,49 @@ module berlekamp_messey(
     multiply M48 (.X(d5i_d4sigma41),.A(d5i_d4),.B(sigma[4][15:8]));
     multiply M49 (.X(d5i_d4sigma40),.A(d5i_d4),.B(sigma[4][7:0]));
   
-  reg [2:0] row;
+//  reg [2:0] row;
 //  always@(load,T_0,T_1,T_2,T_3,T_4,T_5,T_6)
-always@(posedge(clock))
+//,d4i_d1sigma10,d4i_d2sigma20,d4i_d3sigma30,d4i_d3sigma31,d4i_d3sigma32,d4i_d2sigma21,M1l2
+always@(load,S1,T_0,d0_zero,S2,sigma_11_S1,T_1,d1_zero,d0_zero,S3,T1_h1,T1_s21S2,T1_s22S1,T_2,d2_zero,Muh1_zero,S4,T2_h1,sigma31S3,sigma32S2,sigma33S1,T_3,S5,sigma41S4,sigma42S3,sigma43S2,T_4,S6,sigma51S5,sigma52S4,sigma53S3,T_5,T_6,d[0],d[1], h[1],d[2], h[2],d[3], h[3],d[4], h[4],d[5], h[5], T1_temp, d2i_d0, T_2sigma3, T_2sigma2, T_2sigma1, d2i_d1sigma12, d2i_d1sigma11, d2i_d1sigma10, d3_zero, Muh2_zero, d3i_d0, d3i_d1sigma11, d3i_d1sigma10, d3i_d2sigma22, d3i_d2sigma21, d3i_d2sigma20, M1l3, M2l3, d4_zero, Muh3_zero, d4i_d1sigma10, d4i_d2sigma21, d4i_d2sigma20, d4i_d3sigma32, d4i_d3sigma31, d4i_d3sigma30, M1l2, M2l2, M3l2, d5_zero, Muh4_zero, d5i_d2sigma20, d5i_d3sigma31, d5i_d3sigma30, d5i_d4sigma42, 
+d5i_d4sigma41, d5i_d4sigma40, M1l, M2l, M3l, M4l, sigma[1], sigma[2], sigma[3], sigma[4], sigma[5], sigma[6])
   begin
     if(load)
      begin
-       ready <= 1'b0;
-       sigma[1] <= 32'b0;
-       sigma[2] <= 32'b0;
-       sigma[3] <= 32'b0;
-       sigma[4] <= 32'b0;
-       sigma[5] <= 32'b0;
-       sigma[6] <= 32'b0;       
-       d[0] <= S1;
-       h[1] <= 3'b0;
-       h[2] <= 3'b0;
-       h[3] <= 3'b0;
-       h[4] <= 3'b0;
-       h[5] <= 3'b0;
-       h[6] <= 3'b0;
+       ready = 1'b0;
+       sigma[1] = 32'b0;
+       sigma[2] = 32'b0;
+       sigma[3] = 32'b0;
+       sigma[4] = 32'b0;
+       sigma[5] = 32'b0;
+       sigma[6] = 32'b0;       
+       d[0] = S1;
+       h[1] = 3'b0;
+       h[2] = 3'b0;
+       h[3] = 3'b0;
+       h[4] = 3'b0;
+       h[5] = 3'b0;
+       h[6] = 3'b0;
      end
      
     else if(T_0)
      begin
         if(d0_zero)
         begin
-            sigma[1] <= 1;
-            h[1] <= 0;
+            sigma[1] = 1;
+            h[1] = 0;
         end
         
         else
         begin
-            sigma[1][8*1-1:0] <= 1;
-            sigma[1][8*2-1:8*1] <= d[0];
-            h[1] <= 1;
+            sigma[1][8*1-1:0] = 1;
+            sigma[1][8*2-1:8*1] = d[0];
+            h[1] = 1;
         end
         
         if((~h[1][0])&&(~h[1][1])&&(~h[1][2]))        //here h[1] is only 0 or 1
-            d[1] <= S2;
+            d[1] = S2;
         else
-            d[1] <= S2^sigma_11_S1;
+            d[1] = S2^sigma_11_S1;
                       
      end
      
@@ -307,30 +373,30 @@ always@(posedge(clock))
      begin
         if(d1_zero)
         begin
-            sigma[2] <= sigma[1];
-            h[2] <= h[1];
+            sigma[2] = sigma[1];
+            h[2] = h[1];
         end
 
         else
         begin         
             if(d0_zero)     //Ro = -1th row
             begin
-                sigma[2] <= {sigma[1][31:24],d[1]^sigma[1][23:16],sigma[1][15:0]};
-                h[2] <= 3'd2;
+                sigma[2] = {sigma[1][31:24],d[1]^sigma[1][23:16],sigma[1][15:0]};
+                h[2] = 3'd2;
             end
             
             else
             begin
-                sigma[2] <= (sigma[1]^T1_temp);
-                h[2] <= 3'd1;
+                sigma[2] = (sigma[1]^T1_temp);
+                h[2] = 3'd1;
             end
         end  
         
         case(h[2])
-			  3'd0:   d[2] <= S3;       
-			  3'd1:   d[2] <= T1_h1;
-			  3'd2:   d[2] <= ((S3^T1_s21S2)^T1_s22S1);
-			  default:d[2] <= S3; 
+			  3'd0:   d[2] = S3;       
+			  3'd1:   d[2] = T1_h1;
+			  3'd2:   d[2] = ((S3^T1_s21S2)^T1_s22S1);
+			  default:d[2] = S3; 
         endcase          
      end
      
@@ -338,248 +404,313 @@ always@(posedge(clock))
      begin
         if(d2_zero)
         begin
-            sigma[3] <= sigma[2];
-            h[3] <= h[2];
+            sigma[3] = sigma[2];
+            h[3] = h[2];
         end
         
         else if((d1_zero)&&(d0_zero))     //Ro = -1th row
         begin
-            sigma[3] <= {(d[2]^(sigma[2][31:24])),sigma[2][23:0]};
-            h[3] <= 3'd3;
+            sigma[3] = {(d[2]^(sigma[2][31:24])),sigma[2][23:0]};
+            h[3] = 3'd3;
         end
         
         else if(Muh1_zero)          //This block is to account for the fact that, I am assigning Muh == 0 if it's d is zero
         begin                       //So that it will no lenger be largest number
             if(~d0_zero)            //But a case can arise if all Muh be zero.This block is for this case
             begin
-                sigma[3] <= {sigma[2][31:24],(sigma[2][23:16])^(d2i_d0),sigma[2][15:0]};
-                h[3] <= 3'd2;
+                sigma[3] = {sigma[2][31:24],(sigma[2][23:16])^(d2i_d0),sigma[2][15:0]};
+                h[3] = 3'd2;
             end
             
             else
             begin
-                sigma[3] <= {(T_2sigma3),(T_2sigma2),(T_2sigma1),sigma[2][7:0]};
-                h[3] <= (h[2]>(h[1]+1))?h[2]:(h[1]+1);
+                sigma[3] = {(T_2sigma3),(T_2sigma2),(T_2sigma1),sigma[2][7:0]};
+                h[3] = (h[2]>(h[1]+1))?h[2]:(h[1]+1);
             end
         end
         
         else
         begin
-            sigma[3] <= {((sigma[2][31:24])^(d2i_d1sigma12)),((sigma[2][23:16])^(d2i_d1sigma11)),((sigma[2][15:8])^(d2i_d1sigma10)),sigma[2][7:0]};
-            h[3] <= (h[2]>(h[1]+1))?h[2]:(h[1]+1);
+            sigma[3] = {((sigma[2][31:24])^(d2i_d1sigma12)),((sigma[2][23:16])^(d2i_d1sigma11)),((sigma[2][15:8])^(d2i_d1sigma10)),sigma[2][7:0]};
+            h[3] = (h[2]>(h[1]+1))?h[2]:(h[1]+1);
         end                       
         
         case(h[3])
-			  3'd0:		d[3] <= S4;
-			  3'd1:     d[3] <= T2_h1;
-			  3'd2:		d[3] <= ((S4^sigma31S3)^sigma32S2);
-			  3'd3:		d[3] <= (((S4^sigma31S3)^sigma32S2)^sigma33S1);
-			  default:  d[3] <= S4;
+			  3'd0:		d[3] = S4;
+			  3'd1:     d[3] = T2_h1;
+			  3'd2:		d[3] = ((S4^sigma31S3)^sigma32S2);
+			  3'd3:		d[3] = (((S4^sigma31S3)^sigma32S2)^sigma33S1);
+			  default:  d[3] = S4;
         endcase                    
      end
      
     else if(T_3)
      begin   
-        row <= 3'd6;          
+//        row <= 3'd6;          
         if(d3_zero)
         begin
-            sigma[4] <= sigma[3];
-            h[4] <= h[3];
+            sigma[4] = sigma[3];
+            h[4] = h[3];
         end
         
         else if((d2_zero)&&(d1_zero)&&(d0_zero))     //Ro = -1th row
-            row <= 3'd7;
+            	begin
+						 sigma[4] = sigma[3];
+						 h[4] = 3'd4;
+					end
+//				row <= 3'd7;
         
         else if(Muh1_zero&&Muh2_zero)
         begin
             if(~d0_zero)
-                row <= 3'd0;
+					begin
+						 sigma[4] = {((sigma[3][31:24])^d3i_d0),sigma[3][23:0]};
+						 h[4] = 3'd3;
+					end
+//               row <= 3'd0;
             else if(~d1_zero)
-                row <= 3'd1;
+					begin
+						 sigma[4] = {((sigma[3][31:24])^(d3i_d1sigma11)),((sigma[3][23:16])^(d3i_d1sigma10)),sigma[3][15:0]};
+						 h[4] = (h[3]>(h[1]+2))?h[3]:(h[1]+2);
+					end
+//               row <= 3'd1;
             else if(~d2_zero)
-                row <= 3'd2;
+					begin
+						 sigma[4] = {((sigma[3][31:24])^(d3i_d2sigma22)),((sigma[3][23:16])^(d3i_d2sigma21)),((sigma[3][15:8])^(d3i_d2sigma20)),sigma[3][7:0]};
+						 h[4] = (h[3]>(h[2]+1))?h[3]:(h[2]+1);
+					end
+//                row <= 3'd2;
         end
                 
         else
             begin
                 if(M1l3)
-                    row <= 3'd1;
+						begin
+							sigma[4] = {((sigma[3][31:24])^(d3i_d1sigma11)),((sigma[3][23:16])^(d3i_d1sigma10)),sigma[3][15:0]};
+							h[4] = (h[3]>(h[1]+2))?h[3]:(h[1]+2);
+						end
+//                   row <= 3'd1;
                 else if(M2l3)
-                    row <= 3'd2;
+						 begin
+							 sigma[4] = {((sigma[3][31:24])^(d3i_d2sigma22)),((sigma[3][23:16])^(d3i_d2sigma21)),((sigma[3][15:8])^(d3i_d2sigma20)),sigma[3][7:0]};
+							 h[4] = (h[3]>(h[2]+1))?h[3]:(h[2]+1);
+						 end
+//                    row <= 3'd2;
             end
                
-        case(row)
-			  3'd7:
-					begin
-						 sigma[4] <= sigma[3];
-						 h[4] <= 3'd4;
-					end
-			  3'd0:
-					begin
-						 sigma[4] <= {((sigma[3][31:24])^d3i_d0),sigma[3][23:0]};
-						 h[4] <= 3'd3;
-					end
-			  3'd1:
-					begin
-						 sigma[4] <= {((sigma[3][31:24])^(d3i_d1sigma11)),((sigma[3][23:16])^(d3i_d1sigma10)),sigma[3][15:0]};
-						 h[4] <= (h[3]>(h[1]+2))?h[3]:(h[1]+2);
-					end
-			  3'd2:
-					begin
-						 sigma[4] <= {((sigma[3][31:24])^(d3i_d2sigma22)),((sigma[3][23:16])^(d3i_d2sigma21)),((sigma[3][15:8])^(d3i_d2sigma20)),sigma[3][7:0]};
-						 h[4] <= (h[3]>(h[2]+1))?h[3]:(h[2]+1);
-					end
-			  default:
-					begin
-						 sigma[4] <= sigma[3];
-						 h[4] <= 3'd4;
-					end
-        endcase
+//        case(row)
+//			  3'd7:
+//					begin
+//						 sigma[4] <= sigma[3];
+//						 h[4] <= 3'd4;
+//					end
+//			  3'd0:
+//					begin
+//						 sigma[4] <= {((sigma[3][31:24])^d3i_d0),sigma[3][23:0]};
+//						 h[4] <= 3'd3;
+//					end
+//			  3'd1:
+//					begin
+//						 sigma[4] <= {((sigma[3][31:24])^(d3i_d1sigma11)),((sigma[3][23:16])^(d3i_d1sigma10)),sigma[3][15:0]};
+//						 h[4] <= (h[3]>(h[1]+2))?h[3]:(h[1]+2);
+//					end
+//			  3'd2:
+//					begin
+//						 sigma[4] <= {((sigma[3][31:24])^(d3i_d2sigma22)),((sigma[3][23:16])^(d3i_d2sigma21)),((sigma[3][15:8])^(d3i_d2sigma20)),sigma[3][7:0]};
+//						 h[4] <= (h[3]>(h[2]+1))?h[3]:(h[2]+1);
+//					end
+//			  default:
+//					begin
+//						 sigma[4] <= sigma[3];
+//						 h[4] <= 3'd4;
+//					end
+//        endcase
         
         case(h[4])
-			  3'd0:		d[4] <= S5;
-			  3'd1:		d[4] <= (S5^sigma41S4);
-			  3'd2:		d[4] <= ((S5^sigma41S4)^sigma42S3);
-			  3'd3:		d[4] <= (((S5^sigma41S4)^sigma42S3)^sigma43S2);
-			  3'd4:		d[4] <= (((S5^sigma41S4)^sigma42S3)^sigma43S2);
-			  default:	d[4] <= S5;
+			  3'd0:		d[4] = S5;
+			  3'd1:		d[4] = (S5^sigma41S4);
+			  3'd2:		d[4] = ((S5^sigma41S4)^sigma42S3);
+			  3'd3:		d[4] = (((S5^sigma41S4)^sigma42S3)^sigma43S2);
+			  3'd4:		d[4] = (((S5^sigma41S4)^sigma42S3)^sigma43S2);
+			  default:	d[4] = S5;
         endcase 
      end
      
     else if(T_4)
      begin
-        row <= 3'd6;
+//        row <= 3'd6;
         if(d4_zero)
         begin
-            sigma[5] <= sigma[4];
-            h[5] <= h[4];
+            sigma[5] = sigma[4];
+            h[5] = h[4];
         end
          
         else if((d3_zero)&&(d2_zero)&&(d1_zero)&&(d0_zero))     //Ro = -1th row
-            row <= 3'd7;
+            begin
+                sigma[5] = sigma[4];
+                h[5] = 3'd5;
+            end
+//				row <= 3'd7;
        
         else if(Muh1_zero&&Muh2_zero&&Muh3_zero)
         begin
             if(~d0_zero)
-                row <= 3'd0;
+				begin
+                sigma[5] = sigma[4];
+                h[5] = 3'd4;
+            end
+//                row <= 3'd0;
             else if(~d1_zero)
-                row <= 3'd1;
+				begin
+                sigma[5] = {((sigma[4][31:24])^(d4i_d1sigma10)),sigma[4][23:0]};
+                h[5] = (h[4]>(h[1]+3))?h[4]:(h[1]+3);
+            end
+//                row <= 3'd1;
             else if(~d2_zero)
-                row <= 3'd2;
+				begin
+                sigma[5] = {((sigma[4][31:24])^(d4i_d2sigma21)),((sigma[4][23:16])^(d4i_d2sigma20)),sigma[4][15:0]};
+                h[5] = (h[4]>(h[2]+2))?h[4]:(h[2]+2);
+            end
+//                row <= 3'd2;
             else if(~d3_zero)
-                row <= 3'd3;
+				begin
+                sigma[5] = {((sigma[4][31:24])^(d4i_d3sigma32)),((sigma[4][23:16])^(d4i_d3sigma31)),((sigma[4][15:8])^(d4i_d3sigma30)),sigma[4][7:0]};
+                h[5] = (h[4]>(h[3]+1))?h[4]:(h[3]+1);
+            end
+//                row <= 3'd3;
         end
         
         else
         begin
             if(M1l2)
-                row <= 3'd1;
+				begin
+                sigma[5] = {((sigma[4][31:24])^(d4i_d1sigma10)),sigma[4][23:0]};
+                h[5] = (h[4]>(h[1]+3))?h[4]:(h[1]+3);
+            end
+//                row <= 3'd1;
             else if(M2l2)
-                row <= 3'd2;
+				begin
+                sigma[5] = {((sigma[4][31:24])^(d4i_d2sigma21)),((sigma[4][23:16])^(d4i_d2sigma20)),sigma[4][15:0]};
+                h[5] = (h[4]>(h[2]+2))?h[4]:(h[2]+2);
+            end
+//                row <= 3'd2;
             else if(M3l2)
-                row <= 3'd3;
+				begin
+                sigma[5] = {((sigma[4][31:24])^(d4i_d3sigma32)),((sigma[4][23:16])^(d4i_d3sigma31)),((sigma[4][15:8])^(d4i_d3sigma30)),sigma[4][7:0]};
+                h[5] = (h[4]>(h[3]+1))?h[4]:(h[3]+1);
+            end
+//                row <= 3'd3;
         end
         
-        case(row)
-        3'd7:
-            begin
-                sigma[5] <= sigma[4];
-                h[5] <= 3'd5;
-            end
-        3'd0:
-            begin
-                sigma[5] <= sigma[4];
-                h[4] <= 3'd4;
-            end
-        3'd1:
-            begin
-                sigma[5] <= {((sigma[4][31:24])^(d4i_d1sigma10)),sigma[4][23:0]};
-                h[5] <= (h[4]>(h[1]+3))?h[4]:(h[1]+3);
-            end
-        3'd2:
-            begin
-                sigma[5] <= {((sigma[4][31:24])^(d4i_d2sigma21)),((sigma[4][23:16])^(d4i_d2sigma20)),sigma[4][15:0]};
-                h[5] <= (h[4]>(h[2]+2))?h[4]:(h[2]+2);
-            end
-        3'd3:
-            begin
-                sigma[5] <= {((sigma[4][31:24])^(d4i_d3sigma32)),((sigma[4][23:16])^(d4i_d3sigma31)),((sigma[4][15:8])^(d4i_d3sigma30)),sigma[4][7:0]};
-                h[5] <= (h[4]>(h[3]+1))?h[4]:(h[3]+1);
-            end
-		  default:
-            begin
-                sigma[5] <= sigma[4];
-                h[5] <= 3'd5;
-            end
-        endcase
-        
+//        case(row)
+//        3'd7:
+//            begin
+//                sigma[5] <= sigma[4];
+//                h[5] <= 3'd5;
+//            end
+//        3'd0:
+//            begin
+//                sigma[5] <= sigma[4];
+//                h[4] <= 3'd4;
+//            end
+//        3'd1:
+//            begin
+//                sigma[5] <= {((sigma[4][31:24])^(d4i_d1sigma10)),sigma[4][23:0]};
+//                h[5] <= (h[4]>(h[1]+3))?h[4]:(h[1]+3);
+//            end
+//        3'd2:
+//            begin
+//                sigma[5] <= {((sigma[4][31:24])^(d4i_d2sigma21)),((sigma[4][23:16])^(d4i_d2sigma20)),sigma[4][15:0]};
+//                h[5] <= (h[4]>(h[2]+2))?h[4]:(h[2]+2);
+//            end
+//        3'd3:
+//            begin
+//                sigma[5] <= {((sigma[4][31:24])^(d4i_d3sigma32)),((sigma[4][23:16])^(d4i_d3sigma31)),((sigma[4][15:8])^(d4i_d3sigma30)),sigma[4][7:0]};
+//                h[5] <= (h[4]>(h[3]+1))?h[4]:(h[3]+1);
+//            end
+//		  default:
+//            begin
+//                sigma[5] <= sigma[4];
+//                h[5] <= 3'd5;
+//            end
+//        endcase
+//        
         case(h[5])
-			  3'd0:		d[5] <= S6;
-			  3'd1:		d[5] <= (S6^sigma51S5);
-			  3'd2:		d[5] <= ((S6^sigma51S5)^sigma52S4);
-			  3'd3:		d[5] <= (((S6^sigma51S5)^sigma52S4)^sigma53S3);
-			  3'd4:		d[5] <= (((S6^sigma51S5)^sigma52S4)^sigma53S3);
-			  default:	d[5] <= S6;
-        endcase 
-       
+			  3'd0:		d[5] = S6;
+			  3'd1:		d[5] = (S6^sigma51S5);
+			  3'd2:		d[5] = ((S6^sigma51S5)^sigma52S4);
+			  3'd3:		d[5] = (((S6^sigma51S5)^sigma52S4)^sigma53S3);
+			  3'd4:		d[5] = (((S6^sigma51S5)^sigma52S4)^sigma53S3);
+			  default:	d[5] = S6;
+        endcase       
      end
      
     else if(T_5)
      begin
-        row <= 3'd6;
+//        row <= 3'd6;
         if(d5_zero)
         begin
-            sigma[6] <= sigma[5];
-            h[6] <= h[5];
+            sigma[6] = sigma[5];
+            h[6] = h[5];
         end
         
         else if((d4_zero)&&(d3_zero)&&(d2_zero)&&(d1_zero)&&(d0_zero))     //Ro = -1th row
-            row <= 3'd7;    
+            sigma[6] = sigma[5];
+//				row <= 3'd7;    
         
         else if(Muh1_zero&&Muh2_zero&&Muh3_zero&&Muh4_zero)
         begin
             if(~d0_zero)
-                row <= 3'd0;
+					sigma[6] = sigma[5];
+//                row <= 3'd0;
             else if(~d1_zero)
-                row <= 3'd1;
+					sigma[6] = sigma[5];
+//                row <= 3'd1;
             else if(~d2_zero)
-                row <= 3'd2;
+					sigma[6] = {((sigma[5][31:24])^(d5i_d2sigma20)),sigma[5][23:0]};
+//                row <= 3'd2;
             else if(~d3_zero)
-                row <= 3'd3;
+					sigma[6] = {((sigma[5][31:24])^(d5i_d3sigma31)),((sigma[5][23:16])^(d5i_d3sigma30)),sigma[5][15:0]};
+//                row <= 3'd3;
             else if(~d4_zero)
-                row <= 3'd4;
+					sigma[6] = {((sigma[5][31:24])^(d5i_d4sigma42)),((sigma[5][23:16])^(d5i_d4sigma41)),((sigma[5][15:8])^(d5i_d4sigma40)),sigma[5][7:0]};
+//                row <= 3'd4;
         end
         
         else
         begin
             if(M1l)
-                row <= 3'd1;
+					sigma[6] = sigma[5];
+//                row <= 3'd1;
             else if(M2l)
-                row <= 3'd2;
+					sigma[6] = {((sigma[5][31:24])^(d5i_d2sigma20)),sigma[5][23:0]};
+//                row <= 3'd2;
             else if(M3l)
-                row <= 3'd3;
+					sigma[6] = {((sigma[5][31:24])^(d5i_d3sigma31)),((sigma[5][23:16])^(d5i_d3sigma30)),sigma[5][15:0]};
+//                row <= 3'd3;
             else if(M4l)
-                row <= 3'd4;
+					sigma[6] = {((sigma[5][31:24])^(d5i_d4sigma42)),((sigma[5][23:16])^(d5i_d4sigma41)),((sigma[5][15:8])^(d5i_d4sigma40)),sigma[5][7:0]};
+//                row <= 3'd4;
         end
      
-     case(row)
-        3'd7:		sigma[6] <= sigma[5];
-        3'd0:		sigma[6] <= sigma[5];
-        3'd1:		sigma[6] <= sigma[5];
-        3'd2:		sigma[6] <= {((sigma[5][31:24])^(d5i_d2sigma20)),sigma[5][23:0]};
-        3'd3:		sigma[6] <= {((sigma[5][31:24])^(d5i_d3sigma31)),((sigma[5][23:16])^(d5i_d3sigma30)),sigma[5][15:0]};
-        3'd4:		sigma[6] <= {((sigma[5][31:24])^(d5i_d4sigma42)),((sigma[5][23:16])^(d5i_d4sigma41)),((sigma[5][15:8])^(d5i_d4sigma40)),sigma[5][7:0]};
-        default:	sigma[6] <= sigma[5];
-		  endcase
+//     case(row)
+//        3'd7:		sigma[6] <= sigma[5];
+//        3'd0:		sigma[6] <= sigma[5];
+//        3'd1:		sigma[6] <= sigma[5];
+//        3'd2:		sigma[6] <= {((sigma[5][31:24])^(d5i_d2sigma20)),sigma[5][23:0]};
+//        3'd3:		sigma[6] <= {((sigma[5][31:24])^(d5i_d3sigma31)),((sigma[5][23:16])^(d5i_d3sigma30)),sigma[5][15:0]};
+//        3'd4:		sigma[6] <= {((sigma[5][31:24])^(d5i_d4sigma42)),((sigma[5][23:16])^(d5i_d4sigma41)),((sigma[5][15:8])^(d5i_d4sigma40)),sigma[5][7:0]};
+//        default:	sigma[6] <= sigma[5];
+//		endcase
     end
      
     else if(T_6)
      begin
-        ready <= 1'b1;
-        w0 <= sigma[6][7:0];
-        w1 <= sigma[6][15:8];
-        w2 <= sigma[6][23:16];
-        w3 <= sigma[6][31:24];
+        ready = 1'b1;
+        w0 = sigma[6][7:0];
+        w1 = sigma[6][15:8];
+        w2 = sigma[6][23:16];
+        w3 = sigma[6][31:24];
      end
   end
 endmodule
@@ -768,7 +899,7 @@ reg [3:0] char;
 
 always@(data_count)
 begin								//Current data priting on LCD
-	case(data_count-1)
+	case({data_count-4'h1})
 	4'hF : char <=	data[63:60];
 	4'hE : char <= data[59:56];
 	4'hD : char <=	data[55:52];
